@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>缅甸语听力测验系统</title>
+    <style>
+        :root { --primary: #1a73e8; --success: #34a853; --error: #ea4335; --text-main: #3c4043; --bg-btn: #f1f3f4; }
+        body { font-family: 'Segoe UI', "Myanmar Text", sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding-top: 70px; margin: 0; color: var(--text-main); }
+        
+        /* 导航栏 */
+        .navbar { width: 100%; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; justify-content: center; padding: 10px 0; position: fixed; top: 0; z-index: 1000; gap: 8px; }
+        .nav-btn { padding: 8px 16px; border: none; background: var(--bg-btn); font-size: 14px; cursor: pointer; border-radius: 20px; transition: 0.2s; text-decoration: none; color: #666; font-weight: bold; }
+        .nav-btn:hover { background: #e8f0fe; color: var(--primary); }
+        .nav-btn.active { background: var(--primary); color: white; }
+
+        .box { background: white; padding: 25px; border-radius: 20px; width: 100%; max-width: 600px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.1); margin-top: 20px; box-sizing: border-box; }
+        
+        /* 选项网格 */
+        .options-grid { display: grid; gap: 10px; margin: 20px 0; }
+        .grid-6 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(2, 1fr); }
+
+        .opt-btn { padding: 20px 10px; font-size: 28px; background: var(--bg-btn); border: 2px solid transparent; border-radius: 12px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; }
+        .opt-btn.selected { border-color: var(--primary); background: #e8f0fe; }
+        .opt-btn.correct { background: #d4edda !important; border-color: var(--success) !important; color: var(--success); font-weight: bold; }
+        .opt-btn.wrong { background: #f8d7da !important; border-color: var(--error) !important; color: var(--error); }
+
+        /* 底部功能按钮样式 - 恢复原来的漂亮样式 */
+        .quiz-footer { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; border-top: 1px dashed #eee; padding-top: 20px; }
+        .btn-nav { background: var(--bg-btn); color: #666; flex: 1; padding: 12px; border-radius: 8px; font-size: 14px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-nav:hover:not(:disabled) { background: #e8eaed; color: #333; }
+        .btn-nav:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* 提交按钮 */
+        .submit-btn { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 18px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+        
+        /* 单词表参考 */
+        .cheat-sheet { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; text-align: left; }
+        .cheat-content { display: none; background: #f8f9fa; padding: 12px; border-radius: 10px; font-size: 14px; margin-top: 10px; max-height: 150px; overflow-y: auto; line-height: 1.6; border: 1px solid #eee; }
+        .cheat-toggle { color: var(--primary); cursor: pointer; font-size: 13px; text-decoration: underline; font-weight: 500; }
+
+        .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .badge { background: #e8f0fe; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+        .speaker-btn { width: 80px; height: 80px; border-radius: 50%; border: none; background: var(--primary); color: white; font-size: 30px; cursor: pointer; box-shadow: 0 4px 10px rgba(26,115,232,0.3); }
+        
+        #setup-view, #quiz-view { display: none; }
+        .active-view { display: block !important; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="nav-btn">🏠 首页</a>
+        <a href="learn.html" class="nav-btn">📖 单词表</a>
+        <a href="vocabulary.html" class="nav-btn">背单词</a>
+        <button class="nav-btn active" onclick="location.reload()">🎯 重新开始</button>
+    </nav>
+
+    <div id="setup-view" class="box active-view">
+        <h2 style="color:var(--primary)">选择测验类型</h2>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button class="submit-btn" onclick="startQuiz('consonants', 1)">🔊 基础辅音：听音选字 (6选项)</button>
+            <button class="submit-btn" onclick="startQuiz('consonants', 2)">👁️ 基础辅音：看字辨音 (4选项)</button>
+            <button class="submit-btn" style="background:var(--success)" onclick="startQuiz('medials', 1)">🎯 复辅音综合测试</button>
+        </div>
+    </div>
+
+    <div id="quiz-view" class="box">
+        <div class="quiz-header">
+            <span id="quiz-badge" class="badge">模式</span>
+            <span id="quiz-progress" style="font-size: 14px; color: #999;">1 / 33</span>
+        </div>
+        <div class="question-area" id="q-area"></div>
+        <div id="quiz-msg" style="margin: 15px 0; font-size: 15px; min-height: 22px; font-weight: bold;"></div>
+        <div class="options-grid" id="options-container"></div>
+        
+        <button class="submit-btn" id="confirm-btn" onclick="handleConfirm()">确认提交</button>
+
+        <div class="quiz-footer">
+            <button class="btn-nav" id="prev-btn" onclick="goPrev()">上一个</button>
+            <button class="btn-nav" id="shuffle-btn" onclick="shuffleOptions()">重新洗牌</button>
+            <button class="btn-nav" id="next-btn" onclick="goNext()">下一个</button>
+        </div>
+
+        <div class="cheat-sheet">
+            <span class="cheat-toggle" onclick="toggleCheat()">🙈 查看参考单词表 (临时学习)</span>
+            <div id="cheat-content" class="cheat-content"></div>
+        </div>
+    </div>
+
+<script>
+    const consonantData = [
+        { c: "က", r: "ka" }, { c: "ခ", r: "kha" }, { c: "ဂ", r: "ga" }, { c: "ဃ", r: "ga" }, { c: "င", r: "nga" },
+        { c: "စ", r: "sa" }, { c: "ဆ", r: "sha" }, { c: "ဇ", r: "za" }, { c: "ဈ", r: "za" }, { c: "ည", r: "nya" },
+        { c: "ဋ", r: "ta" }, { c: "ဌ", r: "tha" }, { c: "ဍ", r: "da" }, { c: "ဎ", r: "da" }, { c: "ဏ", r: "na" },
+        { c: "တ", r: "ta" }, { c: "ထ", r: "tha" }, { c: "ဒ", r: "da" }, { c: "ဓ", r: "da" }, { c: "န", r: "na" },
+        { c: "ပ", r: "pa" }, { c: "ဖ", r: "pha" }, { c: "ဗ", r: "ba" }, { c: "ဘ", r: "ba" }, { c: "မ", r: "ma" },
+        { c: "ယ", r: "ya" }, { c: "ရ", r: "ya/ra" }, { c: "လ", r: "la" }, { c: "ဝ", r: "wa" }, { c: "သ", r: "tha" },
+        { c: "ဟ", r: "ha" }, { c: "ဠ", r: "la" }, { c: "အ", r: "a" }
+    ];
+
+    const medialList = ["ကျ","ချ","ဂျ","ပျ","ဖျ","ဗျ","မျ","နျ","လျ","ကြ","ခြ","ဂြ","ငြ=ည","ပြ","ဖြ","ဗြ","မြ","ကွ","ခွ","ဂွ","ငွ","စွ","ဆွ","ဇွ","တွ","ထွ","ဒွ","ဓွ","နွ","ပွ","ဖွ","ဗွ","မွ","ဘွ","ယွ","ရွ","လွ","သွ","အွ","ငှ","ညှ","နှ","မှ","ယှ","ရှ","လှ","ကျွ","ကြွ","ချွ","ခြွ","ဂျွ","ညွှ","နွှ","မျှ","မြှ","မွှ","ရွှ","လျှ","လွှ","မြွှ"];
+
+    const homophones = {
+        "ဂ": ["ဂ", "ဃ"], "ဃ": ["ဂ", "ဃ"], "ဇ": ["ဇ", "ဈ"], "ဈ": ["ဇ", "ဈ"],
+        "ဋ": ["ဋ", "တ"], "တ": ["ဋ", "တ"], "ဌ": ["ဌ", "ထ"], "ထ": ["ဌ", "ထ"],
+        "ဍ": ["ဍ", "ဒ"], "ဒ": ["ဍ", "ဒ"], "ဎ": ["ဎ", "ဓ"], "ဓ": ["ဎ", "ဓ"],
+        "ဏ": ["ဏ", "န"], "န": ["ဏ", "န"], "ဗ": ["ဗ", "ဘ"], "ဘ": ["ဗ", "ဘ"],
+        "ယ": ["ယ", "ရ"], "ရ": ["ယ", "ရ"] 
+    };
+
+
+    let quizType = ''; 
+    let currentMode = 1; 
+    let quizPool = [];
+    let currentIdx = 0;
+    let selectedItems = [];
+    let currentAudio = null;
+
+    function startQuiz(type, mode) {
+        quizType = type;
+        currentMode = mode;
+        document.getElementById('setup-view').classList.remove('active-view');
+        document.getElementById('quiz-view').classList.add('active-view');
+        
+        // 初始化作弊单词表
+        const cheatBox = document.getElementById('cheat-content');
+        if (type === 'consonants') {
+            cheatBox.innerHTML = consonantData.map(d => `<b>${d.c}</b>: ${d.r}`).join(' | ');
+        } else {
+            cheatBox.innerHTML = medialList.join(' , ');
+        }
+        
+        initPool();
+    }
+
+    function initPool() {
+        let baseData = quizType === 'consonants' ? [...consonantData] : medialList.map(m => ({c: m}));
+        baseData.sort(() => Math.random() - 0.5);
+        
+        // 听音选字用 6 个选项，看字辨音用 4 个选项
+        const optionCount = (currentMode === 1) ? 6 : 4;
+
+        quizPool = baseData.map(item => {
+            const group = (quizType === 'consonants') ? (homophones[item.c] || [item.c]) : [item.c];
+            let choices = group.map(char => ({c: char}));
+            let source = quizType === 'consonants' ? consonantData : medialList.map(m => ({c: m}));
+            
+            while (choices.length < optionCount) {
+                let r = source[Math.floor(Math.random() * source.length)];
+                if (!choices.find(x => x.c === r.c) && !group.includes(r.c)) {
+                    choices.push({c: r.c});
+                }
+            }
+
+            return {
+                target: item,
+                group: group,
+                options: choices.sort(() => Math.random() - 0.5),
+                isMulti: (quizType === 'consonants' && currentMode === 1 && group.length > 1 && item.c !== 'ရ'),
+                userAnswer: null,
+                isCorrect: null
+            };
+        });
+        currentIdx = 0;
+        renderPage(true);
+    }
+
+    function renderPage(autoPlay = false) {
+        const item = quizPool[currentIdx];
+        const optContainer = document.getElementById('options-container');
+        
+        // 动态切换网格样式
+        optContainer.className = (currentMode === 1) ? 'options-grid grid-6' : 'options-grid grid-4';
+
+function renderPage(autoPlay = false) {
+        const item = quizPool[currentIdx];
+        const qArea = document.getElementById('q-area');
+        const optContainer = document.getElementById('options-container');
+        const msg = document.getElementById('quiz-msg');
+        const confirmBtn = document.getElementById('confirm-btn');
+
+        // 更新顶部信息
+        document.getElementById('quiz-badge').innerText = (quizType === 'consonants' ? (currentMode === 1 ? "听音选字" : "看字辨音") : "复辅音测试");
+        document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${quizPool.length}`;
+
+        // 动态切换网格样式：听音选字(Mode 1)用3列6选项，看字辨音(Mode 2)用2列4选项
+        optContainer.className = (currentMode === 1) ? 'options-grid grid-6' : 'options-grid grid-4';
+
+        // 渲染题目区域
+        if (currentMode === 1) {
+            let audioFile = quizType === 'consonants' ? (item.target.c === 'ရ' ? 'ရ.mp3' : `${item.target.c}.mp3`) : `${item.target.c.split('=')[0]}.mp3`;
+            qArea.innerHTML = `<button class="speaker-btn" onclick="playSnd('${audioFile}')">🔊</button>`;
+            if (autoPlay && !item.userAnswer) playSnd(audioFile);
+        } else {
+            qArea.innerHTML = `<div style="font-size:80px; font-weight:bold; color:#333;">${item.target.c}</div>`;
+        }
+
+        // 渲染消息提示和提交按钮
+        if (item.userAnswer) {
+            confirmBtn.style.display = "none";
+            if (item.isCorrect) {
+                msg.innerHTML = `<span style="color:var(--success)">答对了！✨</span>`;
+            } else {
+                msg.innerHTML = `<span style="color:var(--error)">答错了 ❌ 正确答案是：${item.group.join('、')}</span>`;
+            }
+        } else {
+            confirmBtn.style.display = "block";
+            msg.style.color = "#666";
+            msg.innerText = item.isMulti ? "多选：请选出所有对应字母" : "请选择正确选项并提交";
+        }
+
+        // 渲染选项按钮
+        optContainer.innerHTML = "";
+        item.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            
+            // 模式1显示字符，模式2显示喇叭图标
+            btn.innerHTML = (currentMode === 1) ? `<span>${opt.c}</span>` : `<span>🔊</span>`;
+
+            // 处理选中状态（未提交前）
+            if (!item.userAnswer && selectedItems.includes(opt.c)) {
+                btn.classList.add('selected');
+            }
+
+            // 处理提交后的高亮（正确绿，错误红）
+            if (item.userAnswer) {
+                const isTarget = item.group.includes(opt.c); // 是否属于正确答案组
+                const isUserPicked = item.isMulti ? item.userAnswer.includes(opt.c) : (item.userAnswer === opt.c);
+                
+                if (isTarget) btn.classList.add('correct'); // 正确答案亮绿
+                if (isUserPicked && !isTarget) btn.classList.add('wrong'); // 用户选错的亮红
+            }
+
+            btn.onclick = () => {
+                // 如果是模式2（看字辨音），点击选项播放发音
+                if (currentMode === 2) {
+                    let f = quizType === 'consonants' ? (opt.c === 'ရ' ? 'ရ.mp3' : `${opt.c}.mp3`) : `${opt.c.split('=')[0]}.mp3`;
+                    playSnd(f);
+                }
+
+                if (item.userAnswer) return; // 已提交则不可再选
+
+                if (item.isMulti) {
+                    // 多选逻辑
+                    if (selectedItems.includes(opt.c)) {
+                        selectedItems = selectedItems.filter(x => x !== opt.c);
+                    } else {
+                        selectedItems.push(opt.c);
+                    }
+                } else {
+                    // 单选逻辑
+                    selectedItems = [opt.c];
+                }
+                renderPage(false); // 刷新显示选中状态
+            };
+            optContainer.appendChild(btn);
+        });
+    }
+        
+        // 渲染选项和题目 (同前文)
+        const qArea = document.getElementById('q-area');
+        const msg = document.getElementById('quiz-msg');
+        const confirmBtn = document.getElementById('confirm-btn');
+        document.getElementById('quiz-badge').innerText = (quizType === 'consonants' ? (currentMode === 1 ? "听音选字" : "看字辨音") : "复辅音测试");
+        document.getElementById('quiz-progress').innerText = `${currentIdx + 1} / ${quizPool.length}`;
+
+        if (currentMode === 1) {
+            let audioFile = quizType === 'consonants' ? (item.target.c === 'ရ' ? 'ရ.mp3' : `${item.target.c}.mp3`) : `${item.target.c.split('=')[0]}.mp3`;
+            qArea.innerHTML = `<button class="speaker-btn" onclick="playSnd('${audioFile}')">🔊</button>`;
+            if (autoPlay && !item.userAnswer) playSnd(audioFile);
+        } else {
+            qArea.innerHTML = `<div style="font-size:80px; font-weight:bold;">${item.target.c}</div>`;
+        }
+
+        if (item.userAnswer) {
+            confirmBtn.style.display = "none";
+            msg.innerHTML = item.isCorrect ? `<span style="color:var(--success)">答对了！✨</span>` : `<span style="color:var(--error)">答错了 ❌ 正确答案：${item.group.join('、')}</span>`;
+        } else {
+            confirmBtn.style.display = "block";
+            msg.innerText = item.isMulti ? "多选：选出所有对应字母" : "请选择正确选项";
+        }
+
+        optContainer.innerHTML = "";
+        item.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerHTML = (currentMode === 1) ? `<span>${opt.c}</span>` : `<span>🔊</span>`;
+            if (!item.userAnswer && selectedItems.includes(opt.c)) btn.classList.add('selected');
+            if (item.userAnswer) {
+                if (item.group.includes(opt.c)) btn.classList.add('correct');
+                else if ((item.isMulti ? item.userAnswer.includes(opt.c) : item.userAnswer === opt.c)) btn.classList.add('wrong');
+            }
+            btn.onclick = () => {
+                if (currentMode === 2) {
+                    let f = quizType === 'consonants' ? (opt.c === 'ရ' ? 'ရ.mp3' : `${opt.c}.mp3`) : `${opt.c.split('=')[0]}.mp3`;
+                    playSnd(f);
+                }
+                if (item.userAnswer) return;
+                if (item.isMulti) {
+                    if (selectedItems.includes(opt.c)) selectedItems = selectedItems.filter(x => x !== opt.c);
+                    else selectedItems.push(opt.c);
+                } else { selectedItems = [opt.c]; }
+                renderPage(false);
+            };
+            optContainer.appendChild(btn);
+        });
+    }
+
+    function toggleCheat() {
+        const content = document.getElementById('cheat-content');
+        const toggle = document.querySelector('.cheat-toggle');
+        if (content.style.display === 'block') {
+            content.style.display = 'none';
+            toggle.innerText = '🙈 查看参考单词表 (临时学习)';
+        } else {
+            content.style.display = 'block';
+            toggle.innerText = '🐵 隐藏参考单词表';
+        }
+    }
+
+    // 后续 handleConfirm, playSnd, goNext 等函数保持逻辑不变...
+    function handleConfirm() {
+        if (selectedItems.length === 0) return alert("请先选择选项");
+        const item = quizPool[currentIdx];
+        item.userAnswer = item.isMulti ? [...selectedItems] : selectedItems[0];
+        let isRight = (item.isMulti) ? (selectedItems.length === item.group.length && selectedItems.every(v => item.group.includes(v))) : (item.group.includes(item.userAnswer));
+        item.isCorrect = isRight;
+        selectedItems = [];
+        renderPage(false);
+        if (isRight) setTimeout(goNext, 800);
+    }
+    function playSnd(file) {
+        if (currentAudio) currentAudio.pause();
+        let path = quizType === 'consonants' ? 'Audio/Burmese_Consonants/' : 'Audio/Burmese_Medials_Thiha/';
+        currentAudio = new Audio(`${path}${file}`);
+        currentAudio.play().catch(e => console.log("播放失败"));
+    }
+    function goNext() { if (currentIdx < quizPool.length - 1) { currentIdx++; selectedItems = []; renderPage(true); } else { alert("测验结束！"); location.reload(); } }
+    function goPrev() { if (currentIdx > 0) { currentIdx--; selectedItems = []; renderPage(true); } }
+</script>
+</body>
+</html>

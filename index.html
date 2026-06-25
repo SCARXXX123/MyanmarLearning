@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>缅甸语学习系统</title>
+    <style>
+        :root { --primary: #1a73e8; --success: #34a853; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .menu-card { background: white; padding: 50px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 500px; }
+        h1 { color: var(--primary); margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 40px; }
+        .btn-group { display: flex; flex-direction: column; gap: 15px; }
+        .nav-link { padding: 18px 40px; border-radius: 12px; font-size: 1.1rem; cursor: pointer; transition: 0.3s; text-decoration: none; font-weight: bold; display: block; text-align: center; }
+        .learn { background: var(--primary); color: white; }
+        .quiz { background: var(--success); color: white; }
+        .vocabulary { background: #fbbc05; color: white; }
+        .nav-link:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+    </style>
+</head>
+<body>
+    <div class="menu-card">
+        <h1>缅甸语语音学习系统</h1>
+        <p>基础辅音 (33) & 复辅音 (64)</p>
+        <div class="btn-group">
+            <a href="learn.html" class="nav-link learn">📖 进入单词表学习</a>
+            <a href="quiz.html" class="nav-link quiz">🎯 开始听力测验</a>
+            <a href="vocabulary.html" class="nav-link vocabulary">背单词</a>
+        </div>
+    </div>
+</body>
+</html>

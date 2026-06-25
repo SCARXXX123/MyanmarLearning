@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>缅甸语背单词系统</title>
+    <style>
+        /* 基础变量与重置 */
+        :root { 
+            --primary: #1a73e8; 
+            --success: #34a853; 
+            --error: #ea4335; 
+            --bg: #f0f2f5; 
+            --card-bg: #ffffff; 
+            --text-main: #3c4043; 
+            --bg-btn: #f1f3f4; 
+        }
+        body { 
+            font-family: 'Segoe UI', "Myanmar Text", sans-serif; 
+            background: var(--bg); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding-top: 70px; 
+            color: var(--text-main); 
+            margin: 0; 
+        }
+        
+        /* 导航栏 */
+        .navbar { 
+            width: 100%; 
+            background: white; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+            display: flex; 
+            justify-content: center; 
+            padding: 10px 0; 
+            position: fixed; 
+            top: 0; 
+            z-index: 1000; 
+            gap: 8px; 
+        }
+        .nav-btn { 
+            padding: 8px 16px; 
+            border: none; 
+            background: var(--bg-btn); 
+            font-size: 14px; 
+            cursor: pointer; 
+            border-radius: 20px; 
+            transition: 0.2s; 
+            text-decoration: none; 
+            color: #666; 
+            font-weight: bold; 
+        }
+        .nav-btn:hover { background: #e8f0fe; color: var(--primary); }
+        .nav-btn.active { background: var(--primary); color: white; }
+
+        /* 核心卡片容器 */
+        .box { 
+            background: var(--card-bg); 
+            padding: 30px; 
+            border-radius: 20px; 
+            width: 90%; 
+            max-width: 500px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1); 
+            display: none; 
+            box-sizing: border-box; 
+            margin-bottom: 20px;
+        }
+        .active-view { display: block !important; }
+        
+        h2 { text-align: center; color: var(--primary); margin-top: 0; }
+        
+        /* 设置界面元素 */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
+        select, input[type="number"], input[type="text"] { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            box-sizing: border-box; 
+            transition: 0.2s;
+            font-family: inherit;
+        }
+        select:focus, input[type="text"]:focus { border-color: var(--primary); outline: none; }
+        .start-btn { 
+            width: 100%; 
+            padding: 15px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            transition: 0.2s;
+        }
+        .start-btn:active { transform: scale(0.98); }
+        
+        /* 测验界面元素 */
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 20px; 
+            color: #666; 
+            font-weight: bold; 
+            border-bottom: 2px solid #eee; 
+            padding-bottom: 10px; 
+        }
+        .badge { background: #e8f0fe; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+        .question-area { text-align: center; margin: 30px 0; min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;}
+        .word-display { font-size: 56px; font-weight: bold; margin-bottom: 10px; line-height: 1.2; color: #333; }
+        .speaker-btn { 
+            width: 65px; 
+            height: 65px; 
+            border-radius: 50%; 
+            border: none; 
+            background: var(--primary); 
+            color: white; 
+            font-size: 26px; 
+            cursor: pointer; 
+            margin-bottom: 15px; 
+            box-shadow: 0 4px 10px rgba(26,115,232,0.3);
+        }
+        
+        /* 选项按钮 */
+        .options-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .opt-btn { 
+            padding: 16px; 
+            font-size: 18px; 
+            background: var(--bg-btn); 
+            border: 2px solid transparent; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            text-align: center; 
+            font-weight: 500;
+        }
+        .opt-btn:hover { background: #e8f0fe; border-color: var(--primary); }
+        .opt-btn.correct { background: #d4edda !important; border-color: var(--success) !important; color: var(--success); font-weight: bold; }
+        .opt-btn.wrong { background: #f8d7da !important; border-color: var(--error) !important; color: var(--error); }
+        
+        /* 拼写模式 */
+        #spell-input-area { display: none; width: 100%; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .toggle-kbd-btn { 
+            background: var(--bg-btn); 
+            border: 2px solid #ddd; 
+            border-radius: 10px; 
+            padding: 0 15px; 
+            font-size: 20px; 
+            cursor: pointer; 
+            transition: 0.2s;
+        }
+        .toggle-kbd-btn:hover { background: #e8f0fe; border-color: var(--primary); }
+        .submit-btn { 
+            width: 100%; 
+            padding: 15px; 
+            background: var(--success); 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            margin-top: 10px; 
+            cursor: pointer;
+        }
+        
+        /* 底部提示与下一步 */
+        .footer-area { margin-top: 25px; display: flex; flex-direction: column; gap: 15px; border-top: 1px dashed #eee; padding-top: 20px; }
+        .hint-btn { background: none; border: none; color: #999; text-decoration: underline; cursor: pointer; font-size: 14px; }
+        .hint-text { text-align: center; font-size: 20px; color: var(--primary); font-weight: bold; display: none; }
+        .next-btn { 
+            display: none; 
+            padding: 15px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            font-size: 18px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+
+        /* 虚拟软键盘样式 */
+        #virtual-keyboard {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #cfd3d9;
+            padding: 15px 5px;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.15);
+            z-index: 2000;
+            box-sizing: border-box;
+            max-height: 45vh;
+            overflow-y: auto;
+            border-radius: 16px 16px 0 0;
+        }
+        .kbd-section-title { text-align: center; font-size: 12px; color: #555; margin: 5px 0; width: 100%; font-weight: bold; }
+        .keyboard-grid { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 600px; margin: 0 auto 10px auto; }
+        .kbd-btn {
+            background: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 0;
+            font-size: 24px;
+            font-family: 'Myanmar Text', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            flex: 1 1 calc(14% - 6px);
+            min-width: 40px;
+            transition: background 0.1s;
+        }
+        .kbd-btn:active { background: #e8f0fe; transform: translateY(2px); }
+        .kbd-btn.action-btn { background: #aeb3b9; font-size: 16px; color: #111; flex: 1 1 calc(30% - 6px); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html" class="nav-btn">🏠 首页</a>
+        <a href="learn.html" class="nav-btn">📖 单词表</a>
+        <button class="nav-btn active" onclick="location.reload()">🎯 重新开始任务</button>
+    </nav>
+
+    <div id="setup-view" class="box active-view">
+        <h2>🎯 每日背单词任务</h2>
+        <div class="form-group">
+            <label>今天打算背多少个词？</label>
+            <input type="number" id="word-count" value="20" min="1" max="274">
+        </div>
+        <div class="form-group">
+            <label>选择测验模式：</label>
+            <select id="quiz-mode">
+                <option value="mixed">🔄 综合随机测试 (推荐)</option>
+                <option value="mm2zh">🇲🇲 听缅语/看缅语 -> 选中文</option>
+                <option value="zh2mm">🇨🇳 看中文 -> 选缅语</option>
+                <option value="spell">⌨️ 看中文 -> 拼写缅文</option>
+            </select>
+        </div>
+        <button class="start-btn" onclick="startSession()">🚀 开始背诵</button>
+    </div>
+
+    <div id="quiz-view" class="box">
+        <div class="header">
+            <span id="mode-badge" class="badge">模式</span>
+            <span id="progress-text" style="font-size: 14px;">1 / 20</span>
+        </div>
+        
+        <div class="question-area">
+            <button class="speaker-btn" id="audio-btn" onclick="playAudio()">🔊</button>
+            <div class="word-display" id="q-word">က</div>
+        </div>
+
+        <div class="options-grid" id="options-container"></div>
+
+        <div id="spell-input-area">
+            <div class="input-group">
+                <input type="text" id="spell-input" placeholder="点击右侧按钮展开键盘 ➡️" autocomplete="off">
+                <button class="toggle-kbd-btn" onclick="toggleKeyboard()" title="打开/收起缅甸语键盘">⌨️</button>
+            </div>
+            <button class="submit-btn" id="spell-submit" onclick="checkSpelling()">确认提交</button>
+        </div>
+
+        <div class="footer-area">
+            <button class="hint-btn" id="hint-btn" onclick="showHint()">👀 太难了？看一眼提示</button>
+            <div class="hint-text" id="hint-text"></div>
+            <button class="next-btn" id="next-btn" onclick="loadNextQuestion()">继续下一个 ➡️</button>
+        </div>
+    </div>
+
+    <div id="result-view" class="box" style="text-align: center;">
+        <h2 style="font-size: 30px;">🎉 恭喜！</h2>
+        <p style="font-size: 18px; color: #555;">你已完美完成了今天的背单词任务。</p>
+        <button class="start-btn" onclick="location.reload()" style="margin-top: 20px;">再来一组</button>
+    </div>
+
+    <div id="virtual-keyboard">
+        <div class="kbd-section-title">--- 基础辅音 ---</div>
+        <div class="keyboard-grid" id="kbd-consonants"></div>
+        
+        <div class="kbd-section-title">--- 元音与符号 ---</div>
+        <div class="keyboard-grid" id="kbd-vowels"></div>
+        
+        <div class="keyboard-grid">
+            <button class="kbd-btn action-btn" onmousedown="preventFocus(event); insertChar(' ')">␣ 空格</button>
+            <button class="kbd-btn action-btn" onmousedown="preventFocus(event); backspace()">⌫ 退格</button>
+            <button class="kbd-btn action-btn" onmousedown="preventFocus(event); toggleKeyboard()">⬇️ 收起</button>
+        </div>
+    </div>
+
+<script>
+    // ⚠️ 在这里补充你完整的 274 个词汇，格式必须包含 { mm: '缅文', zh: '中文' }
+    const dictionary = {
+    // === က (Ka) 系列 ===
+    "01_dance_ka": { mm: "က", zh: "跳舞" },
+    "02_play_ka_sar": { mm: "ကစား", zh: "玩耍" },
+    "03_child_ka_lay": { mm: "ကလေး", zh: "小孩" },
+    "04_cartoon_ka_tun": { mm: "ကာတွန်း", zh: "卡通" },
+    "05_car_ka": { mm: "ကား", zh: "汽车" },
+    "06_bus_stop_ka_gate": { mm: "ကားဂိတ်", zh: "公交站" },
+    "07_help_ku_nyi": { mm: "ကူညီ", zh: "帮助" },
+    "08_copy_ku": { mm: "ကူး", zh: "复制/抄写" },
+    "09_photocopy_kaw_pi": { mm: "ကော်ပီ", zh: "复印件" },
+    "10_coffee_shop_kaw_pi_sine": { mm: "ကော်ဖီဆိုင်", zh: "咖啡店" },
+    "11_ironwood_flower_kwi_kaw_pan": { mm: "ကွိကော်ပန်း", zh: "铁木花" },
+    "12_older_brother_ko_ko": { mm: "ကိုကို", zh: "哥哥" },
+    "13_cake_kate_mone": { mm: "ကိတ်မုန့်", zh: "蛋糕" },
+    "14_coat_koke_at_gyi": { mm: "ကုတ်အင်္ကျီ", zh: "外套/大衣" },
+    "15_sweet_potato_kan_sun_u": { mm: "ကန်စွန်းဥ", zh: "红薯" },
+    "16_beach_kan_chay": { mm: "ကမ်းခြေ", zh: "海滩" },
+    "17_company_kum_pa_ni": { mm: "ကုမ္ပဏီ", zh: "公司" },
+    "18_boil_water_kyo": { mm: "ကျို", zh: "烧水/煮" },
+    "19_school_kyaung": { mm: "ကျောင်း", zh: "学校" },
+    "20_dormitory_kyaung_saung": { mm: "ကျောင်းဆောင်", zh: "宿舍" },
+    "21_lotus_kyar_pan": { mm: "ကြာပန်း", zh: "荷花" },
+    "22_fry_kyaw": { mm: "ကြော်", zh: "炒/炸" },
+    "23_rope_kyo": { mm: "ကြိုး", zh: "绳子" },
+    "24_jump_rope_kyo_khon": { mm: "ကြိုးခုန်", zh: "跳绳" },
+    "25_strive_kyo_sar": { mm: "ကြိုးစား", zh: "努力" },
+    "26_egg_kyet_u": { mm: "ကြက်ဥ", zh: "鸡蛋" },
+    "27_chicken_kyet_thar": { mm: "ကြက်သား", zh: "鸡肉" },
+    "28_look_kyi": { mm: "ကြည့်", zh: "看" },
+    "29_computer_kun_pyu_tar": { mm: "ကွန်ပျူတာ", zh: "电脑" },
+    "30_betel_kun_yar": { mm: "ကွမ်းယာ", zh: "槟榔" },
+    "31_buffalo_kywe": { mm: "ကျွဲ", zh: "水牛" },
+    "32_I_male_kyun_taw": { mm: "ကျွန်တော်", zh: "我(男称)" },
+    "33_I_female_kyun_ma": { mm: "ကျွန်မ", zh: "我(女称)" },
+
+    // === ခ (Kha) 系列 ===
+    "34_travel_hka_yi": { mm: "ခရီး", zh: "旅行" },
+    "35_pick_hku": { mm: "ခူး", zh: "采摘" },
+    "36_pencil_hkay_tan": { mm: "ခဲတံ", zh: "铅笔" },
+    "37_call_hkaw": { mm: "ခေါ်", zh: "呼叫" },
+    "38_shelter_hku_hlone": { mm: "ခိုလှုံ", zh: "避难/庇护" },
+    "39_chop_hkyoke": { mm: "ခုတ်", zh: "砍" },
+    "40_curtain_khan_si": { mm: "ခန်းဆီး", zh: "窗帘" },
+    "41_coax_chawt": { mm: "ချော့", zh: "哄" },
+    "42_bathe_cho": { mm: "ချိုး", zh: "洗澡" },
+    "43_cook_chet": { mm: "ချက်", zh: "煮/烹饪" },
+    "44_tiffin_box_chaint": { mm: "ချိုင့်", zh: "饭盒" },
+    "45_sew_choke": { mm: "ချုပ်", zh: "缝纫" },
+    "46_socks_chay_ate": { mm: "ခြေအိတ်", zh: "袜子" },
+    "47_mosquito_chin": { mm: "ခြင်", zh: "蚊子" },
+    "48_dog_hkway": { mm: "ခွေး", zh: "狗" },
+    "49_daughter_in_law_chway_ma": { mm: "ချွေးမ", zh: "儿媳" },
+    "50_take_off_chut": { mm: "ချွတ်", zh: "脱下" },
+    "51_shelter_hku": { mm: "ခို", zh: "躲避/鸽子" },
+
+    // === ဂ (Ga) / ဃ / င (Nga) 系列 ===
+    "52_guitar_gi_tar": { mm: "ဂီတာ", zh: "吉他" },
+    "53_flour_jone_mhone": { mm: "ဂျုံမှုန့်", zh: "面粉" },
+    "54_ngapali_beach_nga_pa_li": { mm: "ငပလီ", zh: "额布里海滩" },
+    "55_fish_ngar": { mm: "ငါး", zh: "鱼" },
+    "56_cry_ngoe": { mm: "ငို", zh: "哭泣" },
+    "57_banana_nghet_pyaw_thee": { mm: "ငှက်ပျောသီး", zh: "香蕉" },
+
+    // === စ (Sa) 系列 ===
+    "58_review_sa_kyet": { mm: "စာကျက်", zh: "复习/温习" },
+    "59_write_sa_ray": { mm: "စာရေး", zh: "写字" },
+    "60_stationery_sa_ray_ka_ri_ya": { mm: "စာရေးကိရိယာ", zh: "文具" },
+    "61_classroom_sa_thin_khan": { mm: "စာသင်ခန်း", zh: "教室" },
+    "62_book_sa_oke": { mm: "စာအုပ်", zh: "书" },
+    "63_eat_sar": { mm: "စား", zh: "吃" },
+    "64_food_sar_sa_yar": { mm: "စားစရာ", zh: "食物" },
+    "65_arrange_si": { mm: "စီ", zh: "排列" },
+    "66_ride_see": { mm: "စီး", zh: "乘坐/骑" },
+    "67_ceo_si_e_o": { mm: "စီအီအို", zh: "CEO/总裁" },
+    "68_collect_su": { mm: "စု", zh: "收集/聚集" },
+    "69_paper_sat_ku": { mm: "စက္ကူ", zh: "纸" },
+    "70_bicycle_sat_thee": { mm: "စက်သီး", zh: "滑轮" },
+    "71_diamond_sein": { mm: "စိန်", zh: "钻石" },
+    "72_downstream_sone": { mm: "စုန်", zh: "顺流而下" },
+    "73_rosary_seik_pu_thee": { mm: "စိပ်ပုတီး", zh: "念珠" },
+    "74_spring_water_sam_ray": { mm: "စမ်းရေ", zh: "泉水" },
+    "75_investigate_sone_sam": { mm: "စုံစမ်း", zh: "调查/打听" },
+    "76_soup_sut_pyoke": { mm: "စွပ်ပြုတ်", zh: "浓汤" },
+
+    // === ဇ (Za) / ဈ (Zha) / ည (Nya) 系列 ===
+    "77_hometown_zar_ti": { mm: "ဇာတိ", zh: "故乡" },
+    "78_spoon_zwon": { mm: "ဇွန်း", zh: "勺子" },
+    "79_market_zay": { mm: "ဈေး", zh: "市场" },
+    "80_shopping_zay_wal": { mm: "ဈေးဝယ်", zh: "购物" },
+    "81_dinner_nya_sa": { mm: "ညစာ", zh: "晚餐" },
+    "82_neatly_nyi_nyi": { mm: "ညီညီ", zh: "整齐地" },
+    "83_clip_nyat": { mm: "ညပ်", zh: "夹" },
+    "84_director_nyun_hmoo": { mm: "ညွှန်မှူး", zh: "局长/主任" },
+
+    // === ဌ (Hta) / တ (Ta) 系列 ===
+    "85_department_hta_na": { mm: "ဌာန", zh: "部门" },
+    "86_head_of_department_hta_na_hmoo": { mm: "ဌာနမှူး", zh: "部门主管" },
+    "87_play_instrument_tee": { mm: "တီ", zh: "弹奏/敲击" },
+    "88_chopsticks_tu": { mm: "တူ", zh: "筷子" },
+    "89_dig_tu": { mm: "တူး", zh: "挖掘" },
+    "90_countryside_taw": { mm: "တော", zh: "乡下/森林" },
+    "91_bridge_tan_tar": { mm: "တံတား", zh: "桥" },
+    "92_taxi_tak_si": { mm: "တက္ကစီ", zh: "出租车" },
+    "93_university_tak_ka_tho": { mm: "တက္ကသိုလ်", zh: "大学" },
+    "94_taunggyi_taung_gyi": { mm: "တောင်ကြီး", zh: "东枝(地名)" },
+    "95_tintin_tin_tin": { mm: "တင်တင်", zh: "丁丁(人名)" },
+    "96_flu_toke_kway": { mm: "တုပ်ကွေး", zh: "流感" },
+    "97_meet_tway": { mm: "တွေ့", zh: "遇见" },
+
+    // === ထ (Htha) 系列 ===
+    "98_get_up_hta": { mm: "ထ", zh: "起来" },
+    "99_rice_hta_min": { mm: "ထမင်း", zh: "米饭" },
+    "100_restaurant_hta_min_sine": { mm: "ထမင်းဆိုင်", zh: "餐厅" },
+    "101_umbrella_htee": { mm: "ထီး", zh: "雨伞" },
+    "102_palm_tree_htan_pin": { mm: "ထန်းပင်", zh: "棕榈树" },
+    "103_pack_htoke": { mm: "ထုပ်", zh: "包裹/打包" },
+
+    // === ဒ (Da) / န (Na) 系列 ===
+    "104_this_one_dar": { mm: "ဒါ", zh: "这个" },
+    "105_this_dee": { mm: "ဒီ", zh: "这" },
+    "106_diary_da_yan_ri": { mm: "ဒိုင်ယာရီ", zh: "日记" },
+    "107_yogurt_dein_chin": { mm: "ဒိန်ချဉ်", zh: "酸奶" },
+    "108_pain_nar": { mm: "နာ", zh: "疼痛" },
+    "109_name_nar_me": { mm: "နာမည်", zh: "名字" },
+    "110_hour_nar_yi": { mm: "နာရီ", zh: "小时/钟表" },
+    "111_rest_nar": { mm: "နား", zh: "休息/耳朵" },
+    "112_sapphire_ni_lar": { mm: "နီလာ", zh: "蓝宝石" },
+    "113_naypyidaw_nay_pyi_taw": { mm: "နေပြည်တော်", zh: "内比都(首都)" },
+    "114_boil_milk_noe_kyo": { mm: "နို့ကျို", zh: "煮牛奶" },
+    "115_condensed_milk_noe_si": { mm: "နို့ဆီ", zh: "炼乳" },
+    "116_wake_up_noe": { mm: "နိုး", zh: "醒来" },
+    "117_retreat_nauk_soke": { mm: "နောက်ဆုတ်", zh: "后退" },
+    "118_abroad_naing_ngan_char": { mm: "နိုင်ငံခြား", zh: "国外" },
+    "119_palace_nan_daw": { mm: "နန်းတော်", zh: "宫殿" },
+    "120_nanning_nan_ning": { mm: "နန်နင်းမြို့", zh: "南宁市" },
+    "121_cow_nwar": { mm: "နွား", zh: "牛" },
+
+    // === ပ (Pa) 系列 ===
+    "122_plastic_bag_pa_lat_sa_tik": { mm: "ပလတ်စတစ်", zh: "塑料" },
+    "123_beijing_pe_kin": { mm: "ပီကင်း", zh: "北京(旧译)" },
+    "124_whistle_pi_pi": { mm: "ပီပီ", zh: "哨子" },
+    "125_axe_pu_sein": { mm: "ပုဆိန်", zh: "斧头" },
+    "126_give_pay": { mm: "ပေး", zh: "给" },
+    "127_bread_paung_mone": { mm: "ပေါင်မုန့်", zh: "面包" },
+    "128_fan_pan_kar": { mm: "ပန်ကာ", zh: "风扇" },
+    "129_flower_pan": { mm: "ပန်း", zh: "花" },
+    "130_plate_pa_gan": { mm: "ပန်းကန်", zh: "盘子" },
+    "131_painting_pan_chi": { mm: "ပန်းချီ", zh: "画作/绘画" },
+    "132_park_pan_chyan": { mm: "ပန်းခြံ", zh: "公园" },
+    "133_apple_pan_thee": { mm: "ပန်းသီး", zh: "苹果" },
+    "134_taro_flower_pein_pan": { mm: "ပိန်းပန်း", zh: "马蹄莲/海芋花" },
+    "135_run_pyay": { mm: "ပြေး", zh: "跑" },
+    "136_say_pyaw": { mm: "ပြော", zh: "说" },
+    "137_boil_food_pyoke": { mm: "ပြုတ်", zh: "水煮" },
+    "138_festival_pwe": { mm: "ပွဲ", zh: "节日/盛会" },
+    "139_theater_pwe_yon": { mm: "ပွဲရုံ", zh: "剧院/批发所" },
+
+    // === ဖ (Hpa) / ဗ (Ba) / ဘ (Bha) 系列 ===
+    "140_watermelon_fa_ray_thee": { mm: "ဖရဲသီး", zh: "西瓜" },
+    "141_shoes_fa_nat": { mm: "ဖိနပ်", zh: "鞋子" },
+    "142_worship_phoo": { mm: "ဖူး", zh: "朝拜" },
+    "143_father_fa_fa": { mm: "ဖေဖေ", zh: "爸爸" },
+    "144_file_tine": { mm: "ဖိုင်", zh: "文件夹" },
+    "145_phone_phone": { mm: "ဖုန်း", zh: "电话" },
+    "146_cover_phone": { mm: "ဖုံး", zh: "盖住" },
+    "147_mat_fyar": { mm: "ဖျာ", zh: "席子" },
+    "148_tray_vanyan": { mm: "ဗန်း", zh: "托盘" },
+    "149_beer_pub_bi_yar_sine": { mm: "ဘီယာဆိုင်", zh: "啤酒馆" },
+    "150_pagoda_ba_yar": { mm: "ဘုရား", zh: "佛塔" },
+    "151_gourd_boo_thee": { mm: "ဘူးသီး", zh: "葫芦" },
+    "152_beijing_alt_ba_kying": { mm: "ဘေကျင်း", zh: "北京" },
+    "153_duck_egg_be_u": { mm: "ဘဲဥ", zh: "鸭蛋" },
+    "154_football_field_baw_lone_kwin": { mm: "ဘောလုံးကွင်း", zh: "足球场" },
+    "155_grandfather_boe_boe": { mm: "ဘိုးဘိုး", zh: "爷爷" },
+    "156_bank_ban": { mm: "ဘဏ်", zh: "银行" },
+
+    // === မ (Ma) 系列 ===
+    "157_older_sister_ma_ma": { mm: "မမ", zh: "姐姐" },
+    "158_lighter_mee_chmit": { mm: "မီးခြစ်", zh: "打火机" },
+    "159_iron_mee_pu": { mm: "မီးပူ", zh: "熨斗" },
+    "160_ironing_mee_pu_tike": { mm: "မီးပူတိုက်", zh: "熨烫" },
+    "161_ask_may": { mm: "မေး", zh: "问" },
+    "162_vote_me": { mm: "မဲ", zh: "选票" },
+    "163_look_up_maw": { mm: "မော့", zh: "抬头/仰望" },
+    "164_roof_leak_moe_yo": { mm: "မိုးယို", zh: "漏雨" },
+    "165_magazine_mag_ga_zin": { mm: "မဂ္ဂဇင်း", zh: "杂志" },
+    "166_ink_min": { mm: "မင်", zh: "墨水" },
+    "167_actress_min_tha_mee": { mm: "မင်းသမီး", zh: "女演员/公主" },
+    "168_taste_myei": { mm: "မြည်း", zh: "品尝" },
+    "169_snack_mone": { mm: "မုန့်", zh: "点心/零食" },
+    "170_dumpling_mone_lone": { mm: "မုန့်လုံး", zh: "丸子/汤圆" },
+    "171_floating_dumpling_mone_lone_ye_paw": { mm: "မုန့်လုံးရေပေါ်", zh: "水上浮丸(甜点)" },
+    "172_radish_mon_la_u": { mm: "မုန်လာဥ", zh: "萝卜" },
+    "173_manager_man_nay_jar": { mm: "မန်နေဂျာ", zh: "经理" },
+    "174_wash_face_myet_hna_thit": { mm: "မျက်နှာသစ်", zh: "洗脸" },
+    "175_water_chestnut_mye_zar_u": { mm: "မြေဇာဥ", zh: "荸荠/马蹄" },
+    "176_peanut_mye_pe": { mm: "မြေပဲ", zh: "花生" },
+    "177_map_mye_pone": { mm: "မြေပုံ", zh: "地图" },
+    "178_chalk_mye_phyu": { mm: "မြေဖြူ", zh: "粉笔" },
+    "179_grass_myet": { mm: "မြက်", zh: "草" },
+    "180_north_myauk_fat": { mm: "မြောက်ဘက်", zh: "北方" },
+    "181_horse_myin": { mm: "မြင်း", zh: "马" },
+    "182_donkey_myee": { mm: "မြည်း", zh: "驴" },
+    "183_wrong_hmar": { mm: "မှား", zh: "错" },
+    "184_mushroom_hmo": { mm: "မှို", zh: "蘑菇" },
+    "185_correct_hman": { mm: "မှန်", zh: "正确" },
+    "186_look_forward_to_hmyaw": { mm: "မျှော်", zh: "期盼" },
+    "187_sour_bamboo_hmyit_chin": { mm: "မျှစ်ချဉ်", zh: "酸笋" },
+    "188_raise_animals_mway": { mm: "မွေး", zh: "饲养/出生" },
+
+    // === ယ (Ya) / ရ (Ra) 系列 ===
+    "189_take_yu": { mm: "ယူ", zh: "拿/取" },
+    "190_leak_yo": { mm: "ယို", zh: "果酱/漏" },
+    "191_fly_yin": { mm: "ယင်", zh: "苍蝇" },
+    "192_rabbit_yone": { mm: "ယုန်", zh: "兔子" },
+    "193_fan_hand_yat_taung": { mm: "ယပ်တောင်", zh: "扇子" },
+    "194_lacquerware_bowl_ywan_pa_gan": { mm: "ယွန်းပန်းကန်", zh: "漆器碗" },
+    "195_train_ya_htar": { mm: "ရထား", zh: "火车" },
+    "196_scoop_water_yay_hkat": { mm: "ရေခပ်", zh: "打水" },
+    "197_take_bath_yay_cho": { mm: "ရေချိုး", zh: "洗澡" },
+    "198_bucket_yay_za_lone": { mm: "ရေဇလုံ", zh: "水盆" },
+    "199_cold_water_yay_aye": { mm: "ရေအေး", zh: "冷水" },
+    "200_police_ye": { mm: "ရဲ", zh: "警察" },
+    "201_mix_yaw": { mm: "ရော", zh: "混合" },
+    "202_shave_reik": { mm: "ရိတ်", zh: "剃/收割" },
+    "203_yangon_yan_gon": { mm: "ရန်ကုန်", zh: "仰光" },
+    "204_office_yone": { mm: "ရုံး", zh: "办公室" },
+    "205_office_car_yone_kar": { mm: "ရုံးကား", zh: "公务车" },
+    "206_office_room_yone_khan": { mm: "ရုံးခန်း", zh: "办公空间" },
+    "207_puppet_yoke_thay": { mm: "ရုပ်သေး", zh: "木偶" },
+
+    // === လ (La) 系列 ===
+    "208_moonlight_la": { mm: "လ", zh: "月亮" },
+    "209_come_lar": { mm: "လာ", zh: "来" },
+    "210_human_lu": { mm: "လူ", zh: "人" },
+    "211_bad_guy_lu_soe": { mm: "လူဆိုး", zh: "坏人" },
+    "212_change_le": { mm: "လဲ", zh: "更换/跌倒" },
+    "213_anxious_law": { mm: "လော", zh: "着急" },
+    "214_gentleman_lu_gyi_min": { mm: "လူကြီးမင်း", zh: "先生/长官" },
+    "215_hand_let": { mm: "လက်", zh: "手" },
+    "216_milk_tea_let_phet_yay": { mm: "လက်ဖက်ရည်", zh: "奶茶" },
+    "217_tea_salad_let_phet_thoke": { mm: "လက်ဖက်သုပ်", zh: "茶叶沙拉" },
+    "218_gloves_let_ate": { mm: "လက်အိတ်", zh: "手套" },
+    "219_original_license_laing_sin_mu_rin": { mm: "လိုင်စင်မူရင်း", zh: "原版执照" },
+    "220_do_work_loke": { mm: "လုပ်", zh: "工作/做" },
+    "221_security_guard_lon_chyon_yay_tha_mar": { mm: "လုံခြုံရေးသမား", zh: "保安" },
+    "222_longyi_lon_chyee": { mm: "လုံချည်", zh: "笼基(筒裙)" },
+    "223_slice_hlee": { mm: "လှီး", zh: "切片" },
+    "224_boat_ride_hlay_see": { mm: "လှေစီး", zh: "乘船" },
+    "225_sweep_hle_kyin": { mm: "လှည်းကျင်း", zh: "打扫" },
+    "226_reduce_hlyawt": { mm: "လျှော့", zh: "减少" },
+    "227_wash_clothes_hlyaw": { mm: "လျှော်", zh: "洗衣服" },
+
+    // === ဝ (Wa) 系列 ===
+    "228_pork_wat_thar": { mm: "ဝက်သား", zh: "猪肉" },
+    "229_red_wine_wine_ni": { mm: "ဝိုင်နီ", zh: "红酒" },
+    "230_white_wine_wine_phyu": { mm: "ဝိုင်ဖြူ", zh: "白葡萄酒" },
+    "231_staff_wan_htam": { mm: "ဝန်ထမ်း", zh: "员工" },
+    "232_buy_wal": { mm: "ဝယ်", zh: "买" },
+
+    // === သ (Tha) 系列 ===
+    "233_cucumber_tha_khwar_thee": { mm: "သခွားသီး", zh: "黄瓜" },
+    "234_newspaper_tha_din_sa": { mm: "သတင်းစာ", zh: "报纸" },
+    "235_daughter_tha_mee": { mm: "သမီး", zh: "女儿" },
+    "236_mango_tha_ryat_thee": { mm: "သရက်သီး", zh: "芒果" },
+    "237_baby_thar_thar": { mm: "သားသား", zh: "男宝宝" },
+    "238_boss_thu_htay": { mm: "သူဌေး", zh: "老板" },
+    "239_friend_thu_nge_chin": { mm: "သူငယ်ချင်း", zh: "朋友" },
+    "240_gun_thay_nat": { mm: "သေနတ်", zh: "枪" },
+    "241_counselor_than_hmoo": { mm: "သံမှူး", zh: "参赞" },
+    "242_embassy_than_yone": { mm: "သံရုံး", zh: "大使馆" },
+    "243_carry_thal": { mm: "သယ်", zh: "搬运" },
+    "244_drink_thauk": { mm: "သောက်", zh: "喝" },
+    "245_ship_thin_baw": { mm: "သင်္ဘော", zh: "船" },
+    "246_papaya_thin_baw_thee": { mm: "သင်္ဘောသီး", zh: "木瓜" },
+    "247_consume_thone_saung": { mm: "သုံးဆောင်", zh: "享用(敬语)" },
+    "248_go_thwar": { mm: "သွား", zh: "去" },
+
+    // === ဟ (Ha) / အ (Ah) / ဦး (Oo) 系列 ===
+    "249_han_ming_han_min": { mm: "ဟန်မင်း", zh: "汉明(人名)" },
+    "250_sweet_a_cho": { mm: "အချို", zh: "甜味" },
+    "251_drink_a_cho_yay": { mm: "အချိုရည်", zh: "甜饮料" },
+    "252_sour_a_chin": { mm: "အချဉ်", zh: "酸味" },
+    "253_meeting_room_a_see_a_way_khan_ma": { mm: "အစည်းအဝေးခန်းမ", zh: "会议室" },
+    "254_singer_a_soe_taw": { mm: "အဆိုတော်", zh: "歌手" },
+    "255_mother_a_may": { mm: "အမေ", zh: "妈妈" },
+    "256_express_train_a_myan_ra_htar": { mm: "အမြန်ရထား", zh: "特快列车" },
+    "257_white_liquor_a_ryat_phyu": { mm: "အရက်ဖြူ", zh: "白酒" },
+    "258_doll_a_ryoke": { mm: "အရုပ်", zh: "玩具/玩偶" },
+    "259_long_distance_bus_a_way_pyay_kar": { mm: "အဝေးပြေးကား", zh: "长途客车" },
+    "260_fruit_a_theee": { mm: "အသီး", zh: "水果" },
+    "261_stadium_ar_ka_sar_kwin": { mm: "အားကစားကွင်း", zh: "体育场" },
+    "262_shout_aw": { mm: "အော်", zh: "大喊" },
+    "263_drawer_an_swal": { mm: "အံဆွဲ", zh: "抽屉" },
+    "264_pot_oe": { mm: "အိုး", zh: "锅/罐" },
+    "265_inle_lake_in_lay": { mm: "အင်းလေး", zh: "茵莱湖" },
+    "266_coconut_tree_at_on_pin": { mm: "အုန်းပင်", zh: "椰子树" },
+    "267_coconut_at_on_thee": { mm: "အုန်းသီး", zh: "椰子" },
+    "268_get_up_ate_yar_hta": { mm: "အိပ်ရာထ", zh: "起床" },
+    "269_host_ate_mote": { mm: "အိမ်ရှင်", zh: "房东/主人" },
+    "270_toilet_ate_thar": { mm: "အိမ်သာ", zh: "厕所" },
+    "271_album_al_bam": { mm: "အယ်လ်ဘမ်", zh: "相册/专辑" },
+    "272_hat_u_htoke": { mm: "ဦးထုပ်", zh: "帽子" },
+    "273_u_ne_win_u_nay_win": { mm: "ဦးနေဝင်း", zh: "吴奈温(人名)" },
+    "274_uncle_u_lay": { mm: "ဦးလေး", zh: "叔叔" }
+    };
+
+
+
+    const allKeys = Object.keys(dictionary);
+    const AUDIO_PATH = "./Audio/myanmar_words_audio/";
+    // 初始化复习机制
+    let wrongWords = JSON.parse(localStorage.getItem('mm_wrong_words') || '[]');
+    let taskQueue = []; 
+    let currentTask = null; 
+    let currentType = ''; 
+    let totalAssigned = 0;
+    let completedCount = 0;
+    let currentAudio = null;
+
+    function saveWrongWord(key) {
+    if (!wrongWords.includes(key)) {
+        wrongWords.push(key);
+        localStorage.setItem('mm_wrong_words', JSON.stringify(wrongWords));
+    }
+}
+
+    function removeWrongWord(key) {
+        wrongWords = wrongWords.filter(k => k !== key);
+        localStorage.setItem('mm_wrong_words', JSON.stringify(wrongWords));
+    }
+    // --- 核心业务逻辑 ---
+
+    // function startSession() {
+    //     const count = parseInt(document.getElementById('word-count').value);
+    //     const mode = document.getElementById('quiz-mode').value;
+        
+    //     // 洗牌并截取任务量
+    //     let shuffledKeys = [...allKeys].sort(() => Math.random() - 0.5);
+    //     taskQueue = shuffledKeys.slice(0, Math.min(count, allKeys.length));
+    //     totalAssigned = taskQueue.length;
+        
+    //     // 为每个词分配题型
+    //     taskQueue = taskQueue.map(key => {
+    //         let type = mode;
+    //         if (mode === 'mixed') {
+    //             const types = ['mm2zh', 'zh2mm', 'spell'];
+    //             type = types[Math.floor(Math.random() * types.length)];
+    //         }
+    //         return { key, type };
+    //     });
+
+    //     document.getElementById('setup-view').classList.remove('active-view');
+    //     document.getElementById('quiz-view').classList.add('active-view');
+        
+    //     loadNextQuestion();
+    // }
+
+    function startSession() {
+        const count = parseInt(document.getElementById('word-count').value);
+        const mode = document.getElementById('quiz-mode').value;
+        
+        // 1. 准备任务队列
+        taskQueue = [];
+
+        // 2. 策略：优先从错题库取词 (最多取 count 的 40%，且不超过错题总数)
+        // 这样可以确保你在复习的同时也能接触新词
+        let reviewCount = Math.min(Math.floor(count * 0.4), wrongWords.length);
+        
+        // 将错题随机打乱后加入队列
+        let shuffledWrongs = [...wrongWords].sort(() => Math.random() - 0.5);
+        for (let i = 0; i < reviewCount; i++) {
+            taskQueue.push(shuffledWrongs[i]);
+        }
+
+        // 3. 补全剩余的新词（排除掉已经入选的错题）
+        let remainingCount = count - taskQueue.length;
+        let freshKeys = allKeys.filter(k => !taskQueue.includes(k))
+                               .sort(() => Math.random() - 0.5);
+        
+        taskQueue = taskQueue.concat(freshKeys.slice(0, remainingCount));
+
+        // 4. 为任务队列中的每个项目分配题型
+        taskQueue = taskQueue.map(key => {
+            let type = mode;
+            if (mode === 'mixed') {
+                const types = ['mm2zh', 'zh2mm', 'spell'];
+                type = types[Math.floor(Math.random() * types.length)];
+            }
+            return { key, type };
+        });
+
+        totalAssigned = taskQueue.length;
+        
+        document.getElementById('setup-view').classList.remove('active-view');
+        document.getElementById('quiz-view').classList.add('active-view');
+        
+        loadNextQuestion();
+    }
+
+    function loadNextQuestion() {
+        // 如果虚拟键盘还开着，自动收起
+        document.getElementById('virtual-keyboard').style.display = 'none';
+
+        if (taskQueue.length === 0) {
+            document.getElementById('quiz-view').classList.remove('active-view');
+            document.getElementById('result-view').classList.add('active-view');
+            return;
+        }
+
+        currentTask = taskQueue.shift();
+        currentType = currentTask.type;
+        const wordData = dictionary[currentTask.key];
+
+        // 重置界面
+        document.getElementById('options-container').innerHTML = '';
+        document.getElementById('options-container').style.display = 'grid';
+        document.getElementById('spell-input-area').style.display = 'none';
+        document.getElementById('spell-input').value = '';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('hint-text').style.display = 'none';
+        document.getElementById('hint-btn').style.display = 'block';
+        document.getElementById('audio-btn').style.display = 'inline-block';
+        
+        document.getElementById('progress-text').innerText = `已掌握: ${completedCount} / 剩余: ${taskQueue.length + 1}`;
+
+        // 渲染不同题型
+        if (currentType === 'mm2zh') {
+            document.getElementById('mode-badge').innerText = '听音选中';
+            document.getElementById('q-word').innerText = wordData.mm;
+            document.getElementById('hint-text').innerText = wordData.zh;
+            generateOptions(wordData.zh, 'zh');
+            playAudio(currentTask.key); 
+        } 
+        else if (currentType === 'zh2mm') {
+            document.getElementById('mode-badge').innerText = '看中文选缅文';
+            document.getElementById('q-word').innerText = wordData.zh;
+            document.getElementById('hint-text').innerText = wordData.mm;
+            document.getElementById('audio-btn').style.display = 'none'; 
+            generateOptions(wordData.mm, 'mm');
+        } 
+        else if (currentType === 'spell') {
+            document.getElementById('mode-badge').innerText = '拼写测试';
+            document.getElementById('q-word').innerText = wordData.zh;
+            document.getElementById('hint-text').innerText = wordData.mm;
+            document.getElementById('options-container').style.display = 'none';
+            document.getElementById('spell-input-area').style.display = 'block';
+            document.getElementById('spell-submit').style.display = 'block';
+            // 自动聚焦输入框
+            setTimeout(() => document.getElementById('spell-input').focus(), 100);
+        }
+    }
+
+    function generateOptions(correctAnswer, targetField) {
+        let options = [correctAnswer];
+        let availableKeys = allKeys.filter(k => k !== currentTask.key);
+        availableKeys.sort(() => Math.random() - 0.5);
+        
+        for (let i = 0; i < 3 && i < availableKeys.length; i++) {
+            options.push(dictionary[availableKeys[i]][targetField]);
+        }
+        
+        options.sort(() => Math.random() - 0.5); 
+        
+        const container = document.getElementById('options-container');
+        options.forEach(opt => {
+            let btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerText = opt;
+            btn.onclick = () => handleChoice(btn, opt === correctAnswer);
+            container.appendChild(btn);
+        });
+    }
+
+    // function handleChoice(btn, isCorrect) {
+    //     if (document.getElementById('next-btn').style.display === 'block') return; 
+
+    //     const btns = document.querySelectorAll('.opt-btn');
+    //     btns.forEach(b => {
+    //         if (b.innerText === dictionary[currentTask.key][currentType === 'mm2zh' ? 'zh' : 'mm']) {
+    //             b.classList.add('correct'); 
+    //         }
+    //     });
+
+    //     if (isCorrect) {
+    //         completedCount++;
+    //     } else {
+    //         btn.classList.add('wrong'); 
+    //         taskQueue.push(currentTask); // 错题重练机制
+    //     }
+
+    //     if (currentType === 'zh2mm') playAudio(currentTask.key); 
+    //     showNextButton();
+    // }
+    function handleChoice(btn, isCorrect) {
+        if (document.getElementById('next-btn').style.display === 'block') return; 
+
+        // 1. 高亮显示正确答案
+        const btns = document.querySelectorAll('.opt-btn');
+        const correctVal = dictionary[currentTask.key][currentType === 'mm2zh' ? 'zh' : 'mm'];
+        btns.forEach(b => {
+            if (b.innerText === correctVal) {
+                b.classList.add('correct'); 
+            }
+        });
+
+        // 2. 核心逻辑修改：加入错题库或移除错题库
+        if (isCorrect) {
+            completedCount++;
+            removeWrongWord(currentTask.key); // 答对了，从错题库中剔除
+        } else {
+            btn.classList.add('wrong'); 
+            saveWrongWord(currentTask.key);   // 答错了，加入错题库
+            taskQueue.push(currentTask);      // 加入队列以便在本次任务中重练
+        }
+
+        if (currentType === 'zh2mm') playAudio(currentTask.key); 
+        showNextButton();
+    }
+
+    function checkSpelling() {
+        const inputStr = document.getElementById('spell-input').value.trim();
+        const correctStr = dictionary[currentTask.key].mm;
+        
+        document.getElementById('spell-submit').style.display = 'none';
+        document.getElementById('virtual-keyboard').style.display = 'none'; // 提交时收起键盘
+        
+        if (inputStr === correctStr) {
+            completedCount++;
+            document.getElementById('hint-text').innerHTML = `<span style="color:var(--success)">✅ 拼写正确！</span>`;
+        } else {
+            document.getElementById('hint-text').innerHTML = `<span style="color:var(--error)">❌ 拼写错误。正确答案是：${correctStr}</span>`;
+            taskQueue.push(currentTask); 
+        }
+        
+        document.getElementById('hint-text').style.display = 'block';
+        playAudio(currentTask.key);
+        showNextButton();
+    }
+
+    function showHint() {
+        document.getElementById('hint-text').style.display = 'block';
+        document.getElementById('hint-btn').style.display = 'none';
+    }
+
+    function showNextButton() {
+        document.getElementById('next-btn').style.display = 'block';
+        document.getElementById('hint-btn').style.display = 'none';
+    }
+
+    function playAudio(keyOverride) {
+        if (currentAudio) currentAudio.pause();
+        const keyToPlay = keyOverride || currentTask.key;
+        currentAudio = new Audio(`${AUDIO_PATH}${keyToPlay}.mp3`);
+        currentAudio.play().catch(e => console.log("音频播放失败"));
+    }
+
+    // --- 虚拟软键盘逻辑 ---
+
+    const myanmarConsonants = ["က", "ခ", "ဂ", "ဃ", "င", "စ", "ဆ", "ဇ", "ဈ", "ည", "ဋ", "ဌ", "ဍ", "ဎ", "ဏ", "တ", "ထ", "ဒ", "ဓ", "န", "ပ", "ဖ", "ဗ", "ဘ", "မ", "ယ", "ရ", "လ", "ဝ", "သ", "ဟ", "ဠ", "အ"];
+    const myanmarVowels = ["ျ", "ြ", "ွ", "ှ", "ာ", "ိ", "ီ", "ု", "ူ", "ေ", "ဲ", "ံ", "့", "း", "်"];
+
+    function initKeyboard() {
+        const consGrid = document.getElementById('kbd-consonants');
+        const vowGrid = document.getElementById('kbd-vowels');
+        
+        myanmarConsonants.forEach(char => {
+            let btn = document.createElement('button');
+            btn.className = 'kbd-btn';
+            btn.innerText = char;
+            btn.onmousedown = (e) => { preventFocus(e); insertChar(char); };
+            consGrid.appendChild(btn);
+        });
+
+        myanmarVowels.forEach(char => {
+            let btn = document.createElement('button');
+            btn.className = 'kbd-btn';
+            btn.innerText = '◌' + char; 
+            btn.onmousedown = (e) => { preventFocus(e); insertChar(char); };
+            vowGrid.appendChild(btn);
+        });
+    }
+
+    function preventFocus(e) {
+        e.preventDefault(); // 阻止按钮点击导致输入框失去焦点
+    }
+
+    function toggleKeyboard() {
+        const kbd = document.getElementById('virtual-keyboard');
+        if (kbd.style.display === 'block') {
+            kbd.style.display = 'none';
+        } else {
+            kbd.style.display = 'block';
+            document.getElementById('spell-input').focus();
+        }
+    }
+
+    function insertChar(char) {
+        const input = document.getElementById('spell-input');
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        
+        input.value = text.substring(0, start) + char + text.substring(end);
+        
+        input.focus();
+        input.selectionStart = input.selectionEnd = start + char.length;
+    }
+
+    function backspace() {
+        const input = document.getElementById('spell-input');
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        
+        if (start === end && start > 0) {
+            input.value = text.substring(0, start - 1) + text.substring(end);
+            input.focus();
+            input.selectionStart = input.selectionEnd = start - 1;
+        } else if (start !== end) {
+            input.value = text.substring(0, start) + text.substring(end);
+            input.focus();
+            input.selectionStart = input.selectionEnd = start;
+        }
+    }
+
+    // 初始化键盘与快捷键监听
+    initKeyboard();
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            if (currentType === 'spell' && document.getElementById('spell-submit').style.display !== 'none') {
+                checkSpelling();
+            } else if (document.getElementById('next-btn').style.display === 'block') {
+                loadNextQuestion();
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
