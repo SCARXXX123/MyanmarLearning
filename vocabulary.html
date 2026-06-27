@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>缅甸语背单词系统</title>
+    <title>缅甸语背单词系统 - 艾宾浩斯版</title>
     <style>
         /* 基础变量与重置 */
         :root { 
             --primary: #1a73e8; 
             --success: #34a853; 
             --error: #ea4335; 
+            --warning: #f9ab00;
             --bg: #f0f2f5; 
             --card-bg: #ffffff; 
             --text-main: #3c4043; 
@@ -69,11 +70,33 @@
         .active-view { display: block !important; }
         
         h2 { text-align: center; color: var(--primary); margin-top: 0; }
+
+        /* 首页进度面板 */
+        .stats-board {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .stat-item { display: flex; flex-direction: column; font-size: 12px; color: #666; font-weight: bold; }
+        .stat-num { font-size: 22px; margin-bottom: 4px; }
+        .full-progress {
+            display: flex;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #e0e0e0;
+            margin-bottom: 25px;
+        }
+        .bar-segment { height: 100%; transition: width 0.5s ease; }
         
         /* 设置界面元素 */
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
-        select, input[type="number"], input[type="text"] { 
+        input[type="number"], input[type="text"] { 
             width: 100%; 
             padding: 12px; 
             border: 2px solid #ddd; 
@@ -82,8 +105,9 @@
             box-sizing: border-box; 
             transition: 0.2s;
             font-family: inherit;
+            text-align: center;
         }
-        select:focus, input[type="text"]:focus { border-color: var(--primary); outline: none; }
+        input[type="text"]:focus { border-color: var(--primary); outline: none; }
         .start-btn { 
             width: 100%; 
             padding: 15px; 
@@ -102,14 +126,28 @@
         .header { 
             display: flex; 
             justify-content: space-between; 
-            margin-bottom: 20px; 
+            align-items: center;
+            margin-bottom: 15px; 
             color: #666; 
             font-weight: bold; 
             border-bottom: 2px solid #eee; 
             padding-bottom: 10px; 
         }
         .badge { background: #e8f0fe; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 12px; }
-        .question-area { text-align: center; margin: 30px 0; min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;}
+        
+        /* 进度指示点 (3个点) */
+        .dots-wrapper { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
+        .dot { 
+            width: 16px; height: 16px; 
+            border-radius: 50%; 
+            background: #e0e0e0; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: white; font-weight: bold;
+            transition: background 0.3s;
+        }
+        .dot.passed { background: var(--success); }
+        
+        .question-area { text-align: center; margin: 20px 0 30px 0; min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;}
         .word-display { font-size: 56px; font-weight: bold; margin-bottom: 10px; line-height: 1.2; color: #333; }
         .speaker-btn { 
             width: 65px; 
@@ -219,37 +257,54 @@
     </style>
 </head>
 <body>
-
+    
     <nav class="navbar">
         <a href="index.html" class="nav-btn">🏠 首页</a>
         <a href="learn.html" class="nav-btn">📖 单词表</a>
-        <button class="nav-btn active" onclick="location.reload()">🎯 重新开始任务</button>
-    </nav>
+        <button class="nav-btn active" onclick="location.reload()">🎯 任务看板</button>
+    </nav> 
 
     <div id="setup-view" class="box active-view">
-        <h2>🎯 每日背单词任务</h2>
+        <h2>🎯 艾宾浩斯复习计划</h2>
+        
+        <div class="stats-board">
+            <div class="stat-item"><span class="stat-num" id="stat-unlearned" style="color:var(--text-main)">0</span>未学习</div>
+            <div class="stat-item"><span class="stat-num" id="stat-review" style="color:var(--warning)">0</span>待复习</div>
+            <div class="stat-item"><span class="stat-num" id="stat-mastered" style="color:var(--success)">0</span>已掌握</div>
+            <div class="stat-item"><span class="stat-num" id="stat-total">0</span>总词汇量</div>
+        </div>
+        
+        <!-- 进度条 -->
+        <div class="full-progress">
+            <div id="bar-mastered" class="bar-segment" style="background:var(--success); width: 0%;" title="已掌握"></div>
+            <div id="bar-review" class="bar-segment" style="background:var(--warning); width: 0%;" title="待复习"></div>
+            <div id="bar-unlearned" class="bar-segment" style="background:#e0e0e0; width: 100%;" title="未学习"></div>
+        </div>
+
+        <p id="today-due-hint" style="text-align:center; font-weight:bold; color:var(--error); margin-bottom: 20px; font-size: 14px;">
+            今日有 0 个单词需要复习
+        </p>
+
         <div class="form-group">
-            <label>今天打算背多少个词？</label>
+            <label>今天总共打算背多少个词？（优先安排复习）</label>
             <input type="number" id="word-count" value="20" min="1" max="274">
         </div>
-        <div class="form-group">
-            <label>选择测验模式：</label>
-            <select id="quiz-mode">
-                <option value="mixed">🔄 综合随机测试 (推荐)</option>
-                <option value="mm2zh">🇲🇲 听缅语/看缅语 -> 选中文</option>
-                <option value="zh2mm">🇨🇳 看中文 -> 选缅语</option>
-                <option value="spell">⌨️ 看中文 -> 拼写缅文</option>
-            </select>
-        </div>
-        <button class="start-btn" onclick="startSession()">🚀 开始背诵</button>
+        <button class="start-btn" onclick="startSession()">🚀 开始今日任务</button>
     </div>
 
     <div id="quiz-view" class="box">
         <div class="header">
             <span id="mode-badge" class="badge">模式</span>
-            <span id="progress-text" style="font-size: 14px;">1 / 20</span>
+            <span id="progress-text" style="font-size: 14px; font-weight: bold;">进度: 1 / 20</span>
         </div>
         
+        <!-- 三点通关进度 -->
+        <div class="dots-wrapper" title="三个状态：听看选汉、看汉选缅、拼写。全绿即可通关">
+            <div id="dot-mm2zh" class="dot">读</div>
+            <div id="dot-zh2mm" class="dot">译</div>
+            <div id="dot-spell" class="dot">拼</div>
+        </div>
+
         <div class="question-area">
             <button class="speaker-btn" id="audio-btn" onclick="playAudio()">🔊</button>
             <div class="word-display" id="q-word">က</div>
@@ -275,7 +330,7 @@
     <div id="result-view" class="box" style="text-align: center;">
         <h2 style="font-size: 30px;">🎉 恭喜！</h2>
         <p style="font-size: 18px; color: #555;">你已完美完成了今天的背单词任务。</p>
-        <button class="start-btn" onclick="location.reload()" style="margin-top: 20px;">再来一组</button>
+        <button class="start-btn" onclick="location.reload()" style="margin-top: 20px;">返回看板</button>
     </div>
 
     <div id="virtual-keyboard">
@@ -293,9 +348,9 @@
     </div>
 
 <script>
-    // ⚠️ 在这里补充你完整的 274 个词汇，格式必须包含 { mm: '缅文', zh: '中文' }
+    // ⚠️ 保持你原本的 274 个完整词库
     const dictionary = {
-    // === က (Ka) 系列 ===
+// === က (Ka) 系列 ===
     "01_dance_ka": { mm: "က", zh: "跳舞" },
     "02_play_ka_sar": { mm: "ကစား", zh: "玩耍" },
     "03_child_ka_lay": { mm: "ကလေး", zh: "小孩" },
@@ -602,93 +657,114 @@
     "274_uncle_u_lay": { mm: "ဦးလေး", zh: "叔叔" }
     };
 
-
-
     const allKeys = Object.keys(dictionary);
     const AUDIO_PATH = "./Audio/myanmar_words_audio/";
-    // 初始化复习机制
-    let wrongWords = JSON.parse(localStorage.getItem('mm_wrong_words') || '[]');
-    let taskQueue = []; 
-    let currentTask = null; 
-    let currentType = ''; 
+    
+    // 艾宾浩斯复习间隔 (以天为单位): 1天, 2天, 4天, 7天, 15天
+    const EBBINGHAUS_INTERVALS = [1, 2, 4, 7, 15]; 
+
+    // --- 数据初始化与状态计算 ---
+    let wordProgress = JSON.parse(localStorage.getItem('mm_word_progress')) || {};
+    
+    // 同步词库到本地数据
+    allKeys.forEach(key => {
+        if (!wordProgress[key]) {
+            wordProgress[key] = {
+                status: 'unlearned', // 'unlearned', 'review', 'mastered'
+                step: 0,             // 艾宾浩斯进度(0-4)
+                nextReview: 0,       // 下次复习时间戳
+                dots: { mm2zh: false, zh2mm: false, spell: false } // 三点进度
+            };
+        }
+    });
+    saveProgress();
+
+    // 全局变量
+    let sessionQueue = []; // 今日需要背诵/复习的单词Key队列
+    let currentKey = null;
+    let currentType = '';
     let totalAssigned = 0;
     let completedCount = 0;
     let currentAudio = null;
 
-    function saveWrongWord(key) {
-    if (!wrongWords.includes(key)) {
-        wrongWords.push(key);
-        localStorage.setItem('mm_wrong_words', JSON.stringify(wrongWords));
+    function saveProgress() {
+        localStorage.setItem('mm_word_progress', JSON.stringify(wordProgress));
     }
-}
 
-    function removeWrongWord(key) {
-        wrongWords = wrongWords.filter(k => k !== key);
-        localStorage.setItem('mm_wrong_words', JSON.stringify(wrongWords));
+    // 初始化首页看板数据
+    function updateDashboard() {
+        let unlearned = 0, review = 0, mastered = 0, dueToday = 0;
+        const now = Date.now();
+
+        allKeys.forEach(key => {
+            const p = wordProgress[key];
+            if (p.status === 'unlearned') unlearned++;
+            else if (p.status === 'mastered') mastered++;
+            else if (p.status === 'review') {
+                review++;
+                if (p.nextReview <= now) dueToday++;
+            }
+        });
+
+        const total = allKeys.length;
+        document.getElementById('stat-unlearned').innerText = unlearned;
+        document.getElementById('stat-review').innerText = review;
+        document.getElementById('stat-mastered').innerText = mastered;
+        document.getElementById('stat-total').innerText = total;
+
+        document.getElementById('bar-mastered').style.width = (mastered / total * 100) + '%';
+        document.getElementById('bar-review').style.width = (review / total * 100) + '%';
+        document.getElementById('bar-unlearned').style.width = (unlearned / total * 100) + '%';
+
+        const dueHint = document.getElementById('today-due-hint');
+        if (dueToday > 0) {
+            dueHint.innerText = `🚨 今日有 ${dueToday} 个单词已到达遗忘临界点，需优先复习！`;
+        } else {
+            dueHint.style.color = 'var(--success)';
+            dueHint.innerText = `✅ 今日暂无急需复习的单词，可以安心学习新词。`;
+        }
     }
+
+    updateDashboard();
+
     // --- 核心业务逻辑 ---
-
-    // function startSession() {
-    //     const count = parseInt(document.getElementById('word-count').value);
-    //     const mode = document.getElementById('quiz-mode').value;
-        
-    //     // 洗牌并截取任务量
-    //     let shuffledKeys = [...allKeys].sort(() => Math.random() - 0.5);
-    //     taskQueue = shuffledKeys.slice(0, Math.min(count, allKeys.length));
-    //     totalAssigned = taskQueue.length;
-        
-    //     // 为每个词分配题型
-    //     taskQueue = taskQueue.map(key => {
-    //         let type = mode;
-    //         if (mode === 'mixed') {
-    //             const types = ['mm2zh', 'zh2mm', 'spell'];
-    //             type = types[Math.floor(Math.random() * types.length)];
-    //         }
-    //         return { key, type };
-    //     });
-
-    //     document.getElementById('setup-view').classList.remove('active-view');
-    //     document.getElementById('quiz-view').classList.add('active-view');
-        
-    //     loadNextQuestion();
-    // }
 
     function startSession() {
         const count = parseInt(document.getElementById('word-count').value);
-        const mode = document.getElementById('quiz-mode').value;
+        const now = Date.now();
         
-        // 1. 准备任务队列
-        taskQueue = [];
+        let dueWords = [];
+        let newWords = [];
 
-        // 2. 策略：优先从错题库取词 (最多取 count 的 40%，且不超过错题总数)
-        // 这样可以确保你在复习的同时也能接触新词
-        let reviewCount = Math.min(Math.floor(count * 0.4), wrongWords.length);
-        
-        // 将错题随机打乱后加入队列
-        let shuffledWrongs = [...wrongWords].sort(() => Math.random() - 0.5);
-        for (let i = 0; i < reviewCount; i++) {
-            taskQueue.push(shuffledWrongs[i]);
-        }
-
-        // 3. 补全剩余的新词（排除掉已经入选的错题）
-        let remainingCount = count - taskQueue.length;
-        let freshKeys = allKeys.filter(k => !taskQueue.includes(k))
-                               .sort(() => Math.random() - 0.5);
-        
-        taskQueue = taskQueue.concat(freshKeys.slice(0, remainingCount));
-
-        // 4. 为任务队列中的每个项目分配题型
-        taskQueue = taskQueue.map(key => {
-            let type = mode;
-            if (mode === 'mixed') {
-                const types = ['mm2zh', 'zh2mm', 'spell'];
-                type = types[Math.floor(Math.random() * types.length)];
+        // 挑选出今日需要复习的单词和新词
+        allKeys.forEach(key => {
+            if (wordProgress[key].status === 'review' && wordProgress[key].nextReview <= now) {
+                dueWords.push(key);
+            } else if (wordProgress[key].status === 'unlearned') {
+                newWords.push(key);
             }
-            return { key, type };
         });
 
-        totalAssigned = taskQueue.length;
-        
+        // 随机打乱
+        dueWords.sort(() => Math.random() - 0.5);
+        newWords.sort(() => Math.random() - 0.5);
+
+        // 优先把复习词汇加入队列，若不足则用新词补充
+        let targetWords = dueWords.slice(0, count);
+        if (targetWords.length < count) {
+            targetWords = targetWords.concat(newWords.slice(0, count - targetWords.length));
+        }
+
+        // 把目标单词存入全局队列 (这里只存key，具体出什么题在 loadNext 决定)
+        sessionQueue = targetWords;
+        totalAssigned = sessionQueue.length;
+        completedCount = 0;
+
+        if (totalAssigned === 0) {
+            alert("你已经学完了所有单词且今日无需复习！");
+            return;
+        }
+
         document.getElementById('setup-view').classList.remove('active-view');
         document.getElementById('quiz-view').classList.add('active-view');
         
@@ -696,20 +772,31 @@
     }
 
     function loadNextQuestion() {
-        // 如果虚拟键盘还开着，自动收起
         document.getElementById('virtual-keyboard').style.display = 'none';
 
-        if (taskQueue.length === 0) {
+        if (sessionQueue.length === 0) {
             document.getElementById('quiz-view').classList.remove('active-view');
             document.getElementById('result-view').classList.add('active-view');
+            updateDashboard(); // 更新后台数据
             return;
         }
 
-        currentTask = taskQueue.shift();
-        currentType = currentTask.type;
-        const wordData = dictionary[currentTask.key];
+        currentKey = sessionQueue.shift();
+        const progress = wordProgress[currentKey];
+        const wordData = dictionary[currentKey];
 
-        // 重置界面
+        // 判断当前这个词缺失哪个点
+        if (!progress.dots.mm2zh) currentType = 'mm2zh';
+        else if (!progress.dots.zh2mm) currentType = 'zh2mm';
+        else if (!progress.dots.spell) currentType = 'spell';
+
+        // 更新顶部 UI
+        document.getElementById('progress-text').innerText = `已完成: ${completedCount} / 总计: ${totalAssigned}`;
+        document.getElementById('dot-mm2zh').className = progress.dots.mm2zh ? 'dot passed' : 'dot';
+        document.getElementById('dot-zh2mm').className = progress.dots.zh2mm ? 'dot passed' : 'dot';
+        document.getElementById('dot-spell').className = progress.dots.spell ? 'dot passed' : 'dot';
+
+        // 重置界面组件
         document.getElementById('options-container').innerHTML = '';
         document.getElementById('options-container').style.display = 'grid';
         document.getElementById('spell-input-area').style.display = 'none';
@@ -718,45 +805,41 @@
         document.getElementById('hint-text').style.display = 'none';
         document.getElementById('hint-btn').style.display = 'block';
         document.getElementById('audio-btn').style.display = 'inline-block';
-        
-        document.getElementById('progress-text').innerText = `已掌握: ${completedCount} / 剩余: ${taskQueue.length + 1}`;
 
-        // 渲染不同题型
+        // 渲染测验内容
         if (currentType === 'mm2zh') {
-            document.getElementById('mode-badge').innerText = '听音选中';
+            document.getElementById('mode-badge').innerText = '1. 听音/看缅 选汉';
             document.getElementById('q-word').innerText = wordData.mm;
             document.getElementById('hint-text').innerText = wordData.zh;
             generateOptions(wordData.zh, 'zh');
-            playAudio(currentTask.key); 
+            playAudio(currentKey); 
         } 
         else if (currentType === 'zh2mm') {
-            document.getElementById('mode-badge').innerText = '看中文选缅文';
+            document.getElementById('mode-badge').innerText = '2. 看中文 选缅文';
             document.getElementById('q-word').innerText = wordData.zh;
             document.getElementById('hint-text').innerText = wordData.mm;
             document.getElementById('audio-btn').style.display = 'none'; 
             generateOptions(wordData.mm, 'mm');
         } 
         else if (currentType === 'spell') {
-            document.getElementById('mode-badge').innerText = '拼写测试';
+            document.getElementById('mode-badge').innerText = '3. 看中文 拼缅文';
             document.getElementById('q-word').innerText = wordData.zh;
             document.getElementById('hint-text').innerText = wordData.mm;
             document.getElementById('options-container').style.display = 'none';
             document.getElementById('spell-input-area').style.display = 'block';
             document.getElementById('spell-submit').style.display = 'block';
-            // 自动聚焦输入框
             setTimeout(() => document.getElementById('spell-input').focus(), 100);
         }
     }
 
     function generateOptions(correctAnswer, targetField) {
         let options = [correctAnswer];
-        let availableKeys = allKeys.filter(k => k !== currentTask.key);
+        let availableKeys = allKeys.filter(k => k !== currentKey);
         availableKeys.sort(() => Math.random() - 0.5);
         
         for (let i = 0; i < 3 && i < availableKeys.length; i++) {
             options.push(dictionary[availableKeys[i]][targetField]);
         }
-        
         options.sort(() => Math.random() - 0.5); 
         
         const container = document.getElementById('options-container');
@@ -764,75 +847,93 @@
             let btn = document.createElement('button');
             btn.className = 'opt-btn';
             btn.innerText = opt;
-            btn.onclick = () => handleChoice(btn, opt === correctAnswer);
+            btn.onclick = () => processAnswer(btn, opt === correctAnswer);
             container.appendChild(btn);
         });
     }
 
-    // function handleChoice(btn, isCorrect) {
-    //     if (document.getElementById('next-btn').style.display === 'block') return; 
-
-    //     const btns = document.querySelectorAll('.opt-btn');
-    //     btns.forEach(b => {
-    //         if (b.innerText === dictionary[currentTask.key][currentType === 'mm2zh' ? 'zh' : 'mm']) {
-    //             b.classList.add('correct'); 
-    //         }
-    //     });
-
-    //     if (isCorrect) {
-    //         completedCount++;
-    //     } else {
-    //         btn.classList.add('wrong'); 
-    //         taskQueue.push(currentTask); // 错题重练机制
-    //     }
-
-    //     if (currentType === 'zh2mm') playAudio(currentTask.key); 
-    //     showNextButton();
-    // }
-    function handleChoice(btn, isCorrect) {
+    function processAnswer(btn, isCorrect) {
         if (document.getElementById('next-btn').style.display === 'block') return; 
 
-        // 1. 高亮显示正确答案
+        // 高亮正确答案
         const btns = document.querySelectorAll('.opt-btn');
-        const correctVal = dictionary[currentTask.key][currentType === 'mm2zh' ? 'zh' : 'mm'];
-        btns.forEach(b => {
-            if (b.innerText === correctVal) {
-                b.classList.add('correct'); 
-            }
-        });
+        const correctVal = dictionary[currentKey][currentType === 'mm2zh' ? 'zh' : 'mm'];
+        btns.forEach(b => { if (b.innerText === correctVal) b.classList.add('correct'); });
 
-        // 2. 核心逻辑修改：加入错题库或移除错题库
         if (isCorrect) {
-            completedCount++;
-            removeWrongWord(currentTask.key); // 答对了，从错题库中剔除
+            handleCorrect();
         } else {
-            btn.classList.add('wrong'); 
-            saveWrongWord(currentTask.key);   // 答错了，加入错题库
-            taskQueue.push(currentTask);      // 加入队列以便在本次任务中重练
+            btn.classList.add('wrong');
+            handleWrong();
         }
 
-        if (currentType === 'zh2mm') playAudio(currentTask.key); 
+        if (currentType === 'zh2mm') playAudio(currentKey); 
         showNextButton();
     }
 
     function checkSpelling() {
         const inputStr = document.getElementById('spell-input').value.trim();
-        const correctStr = dictionary[currentTask.key].mm;
+        const correctStr = dictionary[currentKey].mm;
         
         document.getElementById('spell-submit').style.display = 'none';
-        document.getElementById('virtual-keyboard').style.display = 'none'; // 提交时收起键盘
+        document.getElementById('virtual-keyboard').style.display = 'none'; 
         
         if (inputStr === correctStr) {
-            completedCount++;
             document.getElementById('hint-text').innerHTML = `<span style="color:var(--success)">✅ 拼写正确！</span>`;
+            handleCorrect();
         } else {
             document.getElementById('hint-text').innerHTML = `<span style="color:var(--error)">❌ 拼写错误。正确答案是：${correctStr}</span>`;
-            taskQueue.push(currentTask); 
+            handleWrong();
         }
         
         document.getElementById('hint-text').style.display = 'block';
-        playAudio(currentTask.key);
+        playAudio(currentKey);
         showNextButton();
+    }
+
+    // 处理回答正确
+    function handleCorrect() {
+        const progress = wordProgress[currentKey];
+        progress.dots[currentType] = true; // 点亮当前的进度点
+        
+        // 检查是否三个点都全了
+        if (progress.dots.mm2zh && progress.dots.zh2mm && progress.dots.spell) {
+            // 三点全部通关
+            completedCount++;
+            advanceEbbinghaus(currentKey);
+        } else {
+            // 还没通关，重新放回队列尾部，一会再测下一个点
+            sessionQueue.push(currentKey);
+        }
+        saveProgress();
+    }
+
+    // 处理回答错误
+    function handleWrong() {
+        const progress = wordProgress[currentKey];
+        // 写错不退回当前的点(点保持原样)，但艾宾浩斯阶层重置，加大复习频率
+        progress.step = 0; 
+        // 重新放回队列，直到完成
+        sessionQueue.push(currentKey);
+        saveProgress();
+    }
+
+    // 艾宾浩斯升级逻辑
+    function advanceEbbinghaus(key) {
+        let p = wordProgress[key];
+        
+        if (p.step >= EBBINGHAUS_INTERVALS.length - 1) {
+            // 到达最后阶段
+            p.status = 'mastered';
+        } else {
+            p.status = 'review';
+            // 计算下一次复习时间：当前时间 + 间隔天数
+            let intervalDays = EBBINGHAUS_INTERVALS[p.step];
+            p.nextReview = Date.now() + (intervalDays * 24 * 60 * 60 * 1000);
+            p.step++;
+            // 清空3个点，以便下次复习时重新走流程
+            p.dots = { mm2zh: false, zh2mm: false, spell: false };
+        }
     }
 
     function showHint() {
@@ -847,15 +948,14 @@
 
     function playAudio(keyOverride) {
         if (currentAudio) currentAudio.pause();
-        const keyToPlay = keyOverride || currentTask.key;
+        const keyToPlay = keyOverride || currentKey;
         currentAudio = new Audio(`${AUDIO_PATH}${keyToPlay}.mp3`);
         currentAudio.play().catch(e => console.log("音频播放失败"));
     }
 
-    // --- 虚拟软键盘逻辑 ---
-
+    // --- 虚拟软键盘逻辑 (无修改) ---
     const myanmarConsonants = ["က", "ခ", "ဂ", "ဃ", "င", "စ", "ဆ", "ဇ", "ဈ", "ည", "ဋ", "ဌ", "ဍ", "ဎ", "ဏ", "တ", "ထ", "ဒ", "ဓ", "န", "ပ", "ဖ", "ဗ", "ဘ", "မ", "ယ", "ရ", "လ", "ဝ", "သ", "ဟ", "ဠ", "အ"];
-    const myanmarVowels = ["ျ", "ြ", "ွ", "ှ", "ာ", "ိ", "ီ", "ု", "ူ", "ေ", "ဲ", "ံ", "့", "း", "်"];
+    const myanmarVowels = ["ျ", "ြ", "ွ", "ှ", "ာ", "ိ", "ီ", "ု", "ူ", "ေ", "ဲ", "ံ", "့", "း", "်","္", "ၑ"];
 
     function initKeyboard() {
         const consGrid = document.getElementById('kbd-consonants');
@@ -878,9 +978,7 @@
         });
     }
 
-    function preventFocus(e) {
-        e.preventDefault(); // 阻止按钮点击导致输入框失去焦点
-    }
+    function preventFocus(e) { e.preventDefault(); }
 
     function toggleKeyboard() {
         const kbd = document.getElementById('virtual-keyboard');
@@ -897,9 +995,7 @@
         const start = input.selectionStart;
         const end = input.selectionEnd;
         const text = input.value;
-        
         input.value = text.substring(0, start) + char + text.substring(end);
-        
         input.focus();
         input.selectionStart = input.selectionEnd = start + char.length;
     }
@@ -909,7 +1005,6 @@
         const start = input.selectionStart;
         const end = input.selectionEnd;
         const text = input.value;
-        
         if (start === end && start > 0) {
             input.value = text.substring(0, start - 1) + text.substring(end);
             input.focus();
@@ -921,7 +1016,6 @@
         }
     }
 
-    // 初始化键盘与快捷键监听
     initKeyboard();
 
     document.addEventListener('keydown', (e) => {
